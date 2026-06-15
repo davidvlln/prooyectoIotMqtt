@@ -1,106 +1,104 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { io } from 'socket.io-client';
-import { Thermometer, Droplets, Activity, Wind } from 'lucide-react';
+import { Activity, Thermometer, Droplets, Clock, Map } from 'lucide-react';
+
+const SOCKET_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3001/api/v1';
 
 const Dashboard = () => {
-  const [lecturas, setLecturas] = useState([]);
-  const [stats, setStats] = useState({
-    avgTemp: 0,
-    avgHumAire: 0,
-    avgHumSuelo: 0,
-    alertasActivas: 0
-  });
+  const [nodosData, setNodosData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Inicializar datos
   useEffect(() => {
-    // Connect to Socket.IO backend
-    const socket = io('http://localhost:3000');
+    fetchUltimasLecturas();
+
+    // Conectar a Socket.io
+    const socket = io(SOCKET_URL);
 
     socket.on('connect', () => {
-      console.log('Connected to backend via socket');
+      console.log('Conectado a Socket.io:', socket.id);
     });
 
-    socket.on('new-lectura', (data) => {
-      setLecturas(prev => [data, ...prev].slice(0, 10)); // Keep last 10 readings
+    socket.on('new-lectura', (nuevasLecturas) => {
+      console.log('Nueva lectura recibida via WS:', nuevasLecturas);
+      
+      // Como pueden venir múltiples lecturas en un arreglo (bulk insert)
+      // Lo más fácil para mantener consistencia visual perfecta es volver a llamar a la API
+      // ya que la API nos devuelve todo agrupado por Nodo y Sensor con los nombres listos.
+      fetchUltimasLecturas();
     });
-
-    // You can also add 'new-alerta' listener if needed
 
     return () => {
       socket.disconnect();
     };
   }, []);
 
+  const fetchUltimasLecturas = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/dashboard/ultimas-lecturas`);
+      setNodosData(res.data.data);
+    } catch (error) {
+      console.error('Error fetching ultimas lecturas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getIconForType = (tipo) => {
+    const t = (tipo || '').toLowerCase();
+    if (t.includes('temp')) return <Thermometer size={20} color="var(--accent-secondary)" />;
+    if (t.includes('suelo') || t.includes('tierra')) return <Map size={20} color="#8B4513" />; // Brownish
+    if (t.includes('humed') || t.includes('aire')) return <Droplets size={20} color="#4A90E2" />;
+    return <Activity size={20} color="var(--accent-primary)" />;
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <h1>Dashboard en Tiempo Real</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '100%' }}>
+      <h1>Dashboard - Monitoreo en Tiempo Real</h1>
       
-      <div className="grid-cards">
-        <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', color: 'var(--danger)' }}>
-            <Thermometer size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Temperatura Promedio</p>
-            <h2 style={{ margin: 0, fontSize: '1.75rem' }}>24.5°C</h2>
-          </div>
+      {loading ? (
+        <p>Cargando nodos...</p>
+      ) : nodosData.length === 0 ? (
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem' }}>
+          <h3>No hay datos de telemetría</h3>
+          <p style={{ color: 'var(--text-secondary)' }}>Asegúrate de registrar los nodos y sensores, y de que Node-RED esté enviando datos.</p>
         </div>
-
-        <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '50%', color: 'var(--accent-primary)' }}>
-            <Wind size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Humedad Aire</p>
-            <h2 style={{ margin: 0, fontSize: '1.75rem' }}>60%</h2>
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%', color: 'var(--success)' }}>
-            <Droplets size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Humedad Suelo</p>
-            <h2 style={{ margin: 0, fontSize: '1.75rem' }}>45%</h2>
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '50%', color: 'var(--warning)' }}>
-            <Activity size={32} />
-          </div>
-          <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Nodos Activos</p>
-            <h2 style={{ margin: 0, fontSize: '1.75rem' }}>12</h2>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid-cards" style={{ gridTemplateColumns: '2fr 1fr' }}>
-        <div className="glass-panel" style={{ minHeight: '400px' }}>
-          <h3>Gráfico de Monitoreo</h3>
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-            [Área del Gráfico - Integrar Recharts aquí]
-          </div>
-        </div>
-        
-        <div className="glass-panel">
-          <h3>Últimas Lecturas (Socket.io)</h3>
-          <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {lecturas.length > 0 ? lecturas.map((lect, idx) => (
-              <div key={idx} style={{ padding: '0.75rem', background: 'var(--bg-primary)', borderRadius: '8px', fontSize: '0.875rem' }}>
-                <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Sensor #{lect.id_sensor}</span>
-                  <span style={{ color: 'var(--accent-primary)' }}>{new Date(lect.fecha_hora || Date.now()).toLocaleTimeString()}</span>
-                </div>
-                <div>Valor: <strong>{lect.valor}</strong></div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+          {nodosData.map((nodo) => (
+            <div key={nodo.id_nodo} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="flex-between" style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.75rem' }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                  <Activity size={24} color="var(--accent-primary)" />
+                  {nodo.nombre_nodo}
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Clock size={14} />
+                  {new Date(nodo.ultima_actualizacion).toLocaleTimeString()}
+                </span>
               </div>
-            )) : (
-              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem 0' }}>Esperando datos en tiempo real...</p>
-            )}
-          </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {nodo.lecturas.map((lectura, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {getIconForType(lectura.tipo)}
+                      <span style={{ color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                        {lectura.tipo}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                      {parseFloat(lectura.valor).toFixed(1)} <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{lectura.unidad}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 };

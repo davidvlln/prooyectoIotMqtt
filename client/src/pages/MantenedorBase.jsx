@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 
-const API_URL = 'http://localhost:3000/api/v1';
+const API_URL = 'http://localhost:3001/api/v1';
 
-const MantenedorBase = ({ title, endpoint, pk, fields }) => {
+const MantenedorBase = ({ title, endpoint, pk, fields, relations = {} }) => {
   const [data, setData] = useState([]);
+  const [relationsData, setRelationsData] = useState({});
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({});
@@ -19,6 +20,18 @@ const MantenedorBase = ({ title, endpoint, pk, fields }) => {
     try {
       const res = await axios.get(`${API_URL}/${endpoint}`);
       setData(res.data.data);
+
+      const relData = {};
+      for (const [field, config] of Object.entries(relations)) {
+        try {
+          const relRes = await axios.get(`${API_URL}/${config.endpoint}`);
+          relData[field] = relRes.data.data;
+        } catch (e) {
+          console.error(`Error fetching relation for ${field}`, e);
+          relData[field] = [];
+        }
+      }
+      setRelationsData(relData);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -98,9 +111,17 @@ const MantenedorBase = ({ title, endpoint, pk, fields }) => {
             <tbody>
               {data.map((item) => (
                 <tr key={item[pk]}>
-                  {fields.map((field) => (
-                    <td key={`${item[pk]}-${field}`}>{item[field]}</td>
-                  ))}
+                  {fields.map((field) => {
+                    let displayValue = item[field];
+                    if (relations[field] && relationsData[field]) {
+                      const relConfig = relations[field];
+                      const relatedItem = relationsData[field].find(r => String(r[relConfig.pk]) === String(item[field]));
+                      if (relatedItem) {
+                        displayValue = relatedItem[relConfig.labelField];
+                      }
+                    }
+                    return <td key={`${item[pk]}-${field}`}>{displayValue}</td>;
+                  })}
                   <td style={{ textAlign: 'right' }}>
                     <button 
                       style={{ background: 'none', border: 'none', color: 'var(--accent-secondary)', cursor: 'pointer', marginRight: '0.5rem' }}
@@ -150,13 +171,49 @@ const MantenedorBase = ({ title, endpoint, pk, fields }) => {
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem', textTransform: 'capitalize' }}>
                     {field.replace(/_/g, ' ')}
                   </label>
-                  <input
-                    type="text"
-                    name={field}
-                    value={formData[field] || ''}
-                    onChange={handleChange}
-                    required
-                  />
+                  {relations[field] && relationsData[field] ? (
+                    <select
+                      name={field}
+                      value={formData[field] || ''}
+                      onChange={handleChange}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                      }}
+                    >
+                      <option value="">Seleccione una opción</option>
+                      {relationsData[field].map(opt => (
+                        <option key={opt[relations[field].pk]} value={opt[relations[field].pk]}>
+                          {opt[relations[field].labelField]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      name={field}
+                      value={formData[field] || ''}
+                      onChange={handleChange}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                  )}
                 </div>
               ))}
               

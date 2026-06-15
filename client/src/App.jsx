@@ -1,24 +1,27 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings, Map, Activity, Thermometer, AlertTriangle, Droplets, Users } from 'lucide-react';
+import { LayoutDashboard, Settings, Map, Activity, Thermometer, AlertTriangle, Droplets, Users, ListFilter, History } from 'lucide-react';
 import './index.css';
 
 // Placeholder Pages
 import Dashboard from './pages/Dashboard';
 import MantenedorBase from './pages/MantenedorBase';
+import HistoricoLecturas from './pages/HistoricoLecturas';
 
 const Sidebar = () => {
   const location = useLocation();
   
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/historico', label: 'Historial Lecturas', icon: History },
     { path: '/zonas', label: 'Zonas', icon: Map },
     { path: '/nodos', label: 'Nodos', icon: Activity },
     { path: '/sensores', label: 'Sensores', icon: Thermometer },
+    { path: '/tipos_sensores', label: 'Tipos de Sensores', icon: ListFilter },
     { path: '/alertas', label: 'Alertas', icon: AlertTriangle },
+    { path: '/tipos_alertas', label: 'Tipos de Alertas', icon: Settings },
     { path: '/riegos', label: 'Riegos', icon: Droplets },
     { path: '/usuarios', label: 'Usuarios', icon: Users },
-    { path: '/config', label: 'Configuración', icon: Settings },
   ];
 
   return (
@@ -70,13 +73,16 @@ function App() {
         <div className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/historico" element={<HistoricoLecturas />} />
             <Route path="/zonas" element={<MantenedorBase title="Zonas" endpoint="zonas" pk="id_zona" fields={['id_zona', 'nombre_zona', 'descripcion']} />} />
-            <Route path="/nodos" element={<MantenedorBase title="Nodos" endpoint="nodos" pk="id_nodo" fields={['id_nodo', 'nombre_nodo', 'id_zona', 'tipo_nodo', 'estado_nodo', 'nivel_bateria', 'voltaje']} />} />
-            <Route path="/sensores" element={<MantenedorBase title="Sensores" endpoint="sensores" pk="id_sensor" fields={['id_sensor', 'id_nodo', 'id_tipo_sensor', 'estado_sensor']} />} />
-            <Route path="/alertas" element={<MantenedorBase title="Historial Alertas" endpoint="alertas" pk="id_alerta" fields={['id_alerta', 'dato_capturado', 'fecha_hora_alerta', 'estado_alerta']} />} />
-            <Route path="/riegos" element={<MantenedorBase title="Historial Riegos" endpoint="riegos" pk="id_riego" fields={['id_riego', 'estado_riego', 'fecha_hora_inicio', 'fecha_hora_fin', 'id_zona']} />} />
+            <Route path="/nodos" element={<MantenedorBase title="Nodos" endpoint="nodos" pk="id_nodo" fields={['id_nodo', 'nombre_nodo', 'id_zona', 'tipo_nodo', 'estado_nodo', 'nivel_bateria', 'voltaje']} relations={{ id_zona: { endpoint: 'zonas', pk: 'id_zona', labelField: 'nombre_zona' } }} />} />
+            <Route path="/sensores" element={<MantenedorBase title="Sensores" endpoint="sensores" pk="id_sensor" fields={['id_sensor', 'id_nodo', 'id_tipo_sensor', 'estado_sensor']} relations={{ id_nodo: { endpoint: 'nodos', pk: 'id_nodo', labelField: 'nombre_nodo' }, id_tipo_sensor: { endpoint: 'tipos_sensores', pk: 'id_tipo_sensor', labelField: 'nombre' } }} />} />
+            <Route path="/tipos_sensores" element={<MantenedorBase title="Tipos de Sensores" endpoint="tipos_sensores" pk="id_tipo_sensor" fields={['id_tipo_sensor', 'nombre', 'unidad_medida', 'descripcion']} />} />
+            <Route path="/alertas" element={<MantenedorBase title="Historial Alertas" endpoint="alertas" pk="id_alerta" fields={['id_alerta', 'id_tipo_alerta', 'dato_capturado', 'fecha_hora_alerta', 'estado_alerta']} relations={{ id_tipo_alerta: { endpoint: 'tipos_alertas', pk: 'id_tipo_alerta', labelField: 'nombre' } }} />} />
+            <Route path="/tipos_alertas" element={<MantenedorBase title="Tipos de Alertas" endpoint="tipos_alertas" pk="id_tipo_alerta" fields={['id_tipo_alerta', 'nombre', 'descripcion']} />} />
+            <Route path="/riegos" element={<MantenedorBase title="Historial Riegos" endpoint="riegos" pk="id_riego" fields={['id_riego', 'estado_riego', 'fecha_hora_inicio', 'fecha_hora_fin', 'id_zona']} relations={{ id_zona: { endpoint: 'zonas', pk: 'id_zona', labelField: 'nombre_zona' } }} />} />
             <Route path="/usuarios" element={<MantenedorBase title="Usuarios" endpoint="usuarios" pk="id_usuario" fields={['id_usuario', 'correo', 'fecha_creacion']} />} />
-            <Route path="/config" element={<div className="glass-panel"><h2>Configuración del Sistema</h2><p>Parámetros y Tipos de alertas</p></div>} />
+            <Route path="/config" element={<div className="glass-panel"><h2>Configuración del Sistema</h2><p>Página de configuración general</p></div>} />
           </Routes>
         </div>
       </div>
