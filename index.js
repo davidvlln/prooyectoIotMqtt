@@ -37,8 +37,8 @@ io.on("connection", (socket) => {
   });
 });
 
-const sensoresRoutes = require("./src/routes/sensoresRoutes");
-app.use("/api", sensoresRoutes);
+const apiRoutes = require("./src/routes/apiRoutes");
+app.use("/api/v1", apiRoutes);
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
