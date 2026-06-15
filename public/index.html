@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>obsrv — monitoreo en vivo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar__brand">
+        <span class="topbar__logo">◈</span>
+        <span class="topbar__name">obsrv</span>
+      </div>
+      <div class="topbar__meta">
+        <span class="topbar__live" id="liveIndicator">
+          <span class="topbar__dot"></span>
+          <span class="topbar__label">en vivo</span>
+        </span>
+        <time class="topbar__time" id="clock">--:--:--</time>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="selector">
+        <div class="selector__field">
+          <label class="selector__label" for="nodeSelect">Nodo</label>
+          <div class="selector__control">
+            <select id="nodeSelect">
+              <option value="" disabled selected>Seleccionar nodo</option>
+            </select>
+            <span class="selector__arrow">↓</span>
+          </div>
+        </div>
+        <div class="selector__info" id="nodeInfo">
+          <span class="selector__count" id="totalNodes">—</span>
+          <span class="selector__hint">nodos disponibles</span>
+        </div>
+      </section>
+
+      <section class="primary" id="primaryView">
+        <div class="primary__empty" id="emptyState">
+          <span class="primary__empty-icon">◈</span>
+          <p class="primary__empty-text">Selecciona un nodo para comenzar el monitoreo</p>
+        </div>
+
+        <div class="primary__content hidden" id="liveView">
+          <div class="primary__gauge" id="tempGauge">
+            <span class="primary__ring"></span>
+            <span class="primary__value" id="tempValue">--.--</span>
+            <span class="primary__unit">°C</span>
+          </div>
+
+          <div class="primary__metrics" id="metrics">
+            <div class="metric">
+              <span class="metric__value" id="humValue">--</span>
+              <span class="metric__unit">%</span>
+              <span class="metric__label">Humedad ambiente</span>
+            </div>
+            <div class="metric">
+              <span class="metric__value" id="soilValue">--</span>
+              <span class="metric__unit">%</span>
+              <span class="metric__label">Humedad del suelo</span>
+            </div>
+            <div class="metric">
+              <span class="metric__value" id="lastValue">--:--</span>
+              <span class="metric__label">Última lectura</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="chart-section">
+        <div class="chart-section__header">
+          <h2 class="chart-section__title">Temperatura</h2>
+          <span class="chart-section__badge">últimos 30</span>
+        </div>
+        <div class="chart-section__body" id="chartContainer">
+          <canvas id="sparkChart"></canvas>
+          <div class="chart-section__empty hidden" id="chartEmpty">Esperando datos…</div>
+        </div>
+      </section>
+
+      <section class="log">
+        <div class="log__header">
+          <h2 class="log__title">Registro en vivo</h2>
+          <span class="log__count" id="logCount">0</span>
+        </div>
+        <div class="log__scroll">
+          <table class="log__table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th class="num">Temp</th>
+                <th class="num">Hum. ambiente</th>
+                <th class="num">Hum. suelo</th>
+              </tr>
+            </thead>
+            <tbody id="logBody">
+              <tr><td colspan="4" class="log__empty">Selecciona un nodo para ver registros</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
