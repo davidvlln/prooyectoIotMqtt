@@ -16,6 +16,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware para registrar TODAS las peticiones entrantes
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use(express.static("public"));
 app.use("/assets", express.static("public"));
 app.set("view engine", "ejs");
@@ -40,13 +46,15 @@ io.on("connection", (socket) => {
 const apiRoutes = require("./src/routes/apiRoutes");
 app.use("/api/v1", apiRoutes);
 
+// Mantenemos la ruta antigua /api/sensores viva para no romper Node-RED
+const sensoresController = require("./src/controllers/sensoresController");
+app.post("/api/sensores", sensoresController.crearSensor);
+
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 
-const port = 3000;
+const port = 3001;
 server.listen(port, "0.0.0.0", () => {
-  console.log(
-    `Servidor corriendo en http://localhost:${port}`,
-  );
+  console.log(`Servidor corriendo en http://localhost:${port}`);
 });
