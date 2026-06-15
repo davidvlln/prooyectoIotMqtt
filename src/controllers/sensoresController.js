@@ -38,9 +38,7 @@ exports.ultimasLecturas = async (req, res) => {
         .json({ status: "error", message: errNodos.message });
     }
 
-    const nodosUnicos = [
-      ...new Set(nodos.map((n) => n.node_id)),
-    ];
+    const nodosUnicos = [...new Set(nodos.map((n) => n.node_id))];
 
     const ultimos = [];
     for (const nodeId of nodosUnicos) {
@@ -109,14 +107,28 @@ exports.crearSensor = async (req, res) => {
     console.log(` Humedad Suelo  : ${humedadSuelo} %`);
     console.log("=================================================");
 
-    const { data, error } = await supabase.from("sensores").insert([
-      {
-        node_id: nodeId,
-        temperatura,
-        humedad_aire: humedadAire,
-        humedad_suelo: humedadSuelo,
-      },
-    ]).select();
+    const { data: nodo } = await supabase
+      .from("nodos")
+      .select("*")
+      .eq("nombre_nodo", nodeId)
+      .limit(1);
+    if (nodo.length === 0) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Nodo no encontrado" });
+    }
+
+    const { data, error } = await supabase
+      .from("sensores")
+      .insert([
+        {
+          node_id: nodo[0].id_nodo,
+          temperatura,
+          humedad_aire: humedadAire,
+          humedad_suelo: humedadSuelo,
+        },
+      ])
+      .select();
 
     if (error) {
       console.error("Error al insertar en Supabase:", error.message);
